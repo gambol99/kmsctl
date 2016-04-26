@@ -149,7 +149,12 @@ func newCliApplication() *cli.App {
 					Name:  "flatten",
 					Usage: "do not maintain the directory structure, flattern all files into a single directory",
 				},
-
+				cli.StringFlag{
+					Name:  "d, output-dir",
+					Usage: "the path to the directory in which to save the files",
+					EnvVar: "KMSCTL_OUTPUT_DIR",
+					Value:  "./secrets",
+				},
 				cli.StringFlag{
 					Name:  "f, filter",
 					Usage: "apply the following regex filter to the files before retrieving",
@@ -157,7 +162,7 @@ func newCliApplication() *cli.App {
 				},
 			},
 			Action: func(cx *cli.Context) {
-				r.handleCommand(cx, []string{"l:bucket", "g:output-dir"}, r.getFiles)
+				r.handleCommand(cx, []string{"l:bucket", "l:output-dir"}, r.getFiles)
 			},
 		},
 		{
@@ -334,12 +339,6 @@ func (r cliCommand) getGlobalOptions() []cli.Flag {
 			Name:   "secret-key",
 			Usage:  "the aws secret key to use when accessing the resources",
 			EnvVar: "AWS_SECRET_ACCESS_KEY",
-		},
-		cli.StringFlag{
-			Name:  "o, output-dir",
-			Usage: "the path to the directory in which to save the files",
-			EnvVar: "KMSCTL_OUTPUT_DIR",
-			Value:  "./secrets",
 		},
 		cli.StringFlag{
 			Name:   "session-token",

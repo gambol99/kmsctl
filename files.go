@@ -95,7 +95,7 @@ func (r cliCommand) catFiles(o *formater, cx *cli.Context) error {
 func (r cliCommand) getFiles(o *formater, cx *cli.Context) error {
 	// step: get the inputs
 	bucket := cx.String("bucket")
-	outdir := cx.GlobalString("output-dir")
+	outdir := cx.String("output-dir")
 	flatten := cx.Bool("flatten")
 	recursive := cx.Bool("recursive")
 
@@ -112,18 +112,22 @@ func (r cliCommand) getFiles(o *formater, cx *cli.Context) error {
 
 	// step: iterate the paths build a list of files were interested in
 	for _, p := range r.getPaths(cx) {
+		// step: drop the slash to for empty
+		if strings.HasPrefix(p, "/") {
+			p = strings.TrimPrefix(p, "/")
+		}
+
+		// step: list all the keys in the bucket
 		keys, err := r.listBucketKeys(bucket, p)
 		if err != nil {
 			return err
 		}
-
 		// step: iterate the files
 		for _, k := range keys {
-			// step: trim the prefix
-			trimmed := strings.TrimPrefix(*k.Key, p)
+			filename := *k.Key
 
 			// step: are we recursive? i.e. extract post prefix and ignore any keys which have a / in them
-			if strings.Contains(trimmed, "/") && !recursive {
+			if strings.Contains(filename, "/") && !recursive {
 				continue
 			}
 			// step: apply the filter
@@ -135,19 +139,17 @@ func (r cliCommand) getFiles(o *formater, cx *cli.Context) error {
 			if err != nil {
 				return err
 			}
-			// step: write the file to disk
-			filename := fmt.Sprintf("%s/%s", outdir, trimmed)
-			if flatten {
-				filename = fmt.Sprintf("%s/%s", outdir, filepath.Base(trimmed))
-			} else {
-				// step: ensure the directory structure
-				if err := os.MkdirAll(path.Dir(filename), 0755); err != nil {
-					return err
-				}
+			// step: are we flattening the files
+			if strings.Contains(filename, "/") && flatten {
+				filename = fmt.Sprintf("%s/%s", outdir, filepath.Base(filename))
 			}
-
+			// step: ensure the directory structure
+			fullPath := fmt.Sprintf("%s/%s", outdir, filename)
+			if err := os.MkdirAll(outdir + "/" + path.Dir(filename), 0755); err != nil {
+				return err
+			}
 			// step: create the file for writing
-			file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0744)
+			file, err := os.OpenFile(fullPath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0744)
 			if err != nil {
 				return err
 			}
@@ -159,9 +161,9 @@ func (r cliCommand) getFiles(o *formater, cx *cli.Context) error {
 			o.fields(map[string]interface{}{
 				"action":      "get",
 				"source":      *k.Key,
-				"destination": filename,
+				"destination": fullPath,
 				"content":     string(content),
-			}).log("retrieved the file: %s and wrote to: %s\n", *k.Key, filename)
+			}).log("retrieved the file: %s and wrote to: %s\n", *k.Key, fullPath)
 		}
 	}
 
@@ -370,7 +372,7 @@ func (r cliCommand) listBucketKeys(bucket, prefix string) ([]*s3.Object, error) 
 
 // sizeOfBucket gets the number of objects in the bucket
 func (r cliCommand) sizeOfBucket(name string) (int, error) {
-	files, err := r.listBucketKeys(name, "/")
+	files, err := r.listBucketKeys(name, "")
 	if err != nil {
 		return 0, err
 	}

@@ -3,6 +3,7 @@
 .iml
 bin/
 release/
+secrets/
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o

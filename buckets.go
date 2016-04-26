@@ -86,6 +86,23 @@ func (r cliCommand) deleteBucket(o *formater, cx *cli.Context) error {
 		return fmt.Errorf("the bucket is not empty, either force (--force) deletion or empty the bucket")
 	}
 
+	// step: delete all the keys in the bucket first
+	// @TODO find of there is a force deletion api call
+	if count > 0 {
+		files, err := r.listBucketKeys(name, "")
+		if err != nil {
+			return err
+		}
+		for _, x := range files {
+			if _, err := r.s3Client.DeleteObject(&s3.DeleteObjectInput{
+				Bucket: aws.String(name),
+				Key:    x.Key,
+			}); err != nil {
+				return fmt.Errorf("failed to remove the file: %s from bucket, error: %s", *x.Key, err)
+			}
+		}
+	}
+	// step: delete the bucket
 	if _, err := r.s3Client.DeleteBucket(&s3.DeleteBucketInput{
 		Bucket: aws.String(name),
 	}); err != nil {
