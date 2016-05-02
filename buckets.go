@@ -118,6 +118,21 @@ func (r cliCommand) deleteBucket(o *formater, cx *cli.Context) error {
 	return nil
 }
 
+// hasBucket checks if the bucket exists
+func (r cliCommand) hasBucket(bucket string) (bool, error) {
+	list, err := r.listS3Buckets()
+	if err != nil {
+		return false, err
+	}
+	for _, x := range list {
+		if bucket == *x.Name {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // listS3Buckets gets a list of buckets
 func (r cliCommand) listS3Buckets() ([]*s3.Bucket, error) {
 	list, err := r.s3Client.ListBuckets(&s3.ListBucketsInput{})
