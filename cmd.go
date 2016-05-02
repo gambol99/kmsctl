@@ -205,7 +205,7 @@ func newCliApplication() *cli.App {
 		},
 		{
 			Name:  "edit",
-			Usage: "perform an inline edit of a file either locally or from s3 bucket",
+			Usage: "perform an inline edit of a file from the s3 bucket",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "b, bucket",
@@ -217,11 +217,6 @@ func newCliApplication() *cli.App {
 					Usage:  "the editor to open the file with for editing",
 					Value:  "vim",
 					EnvVar: "EDITOR",
-				},
-				cli.StringFlag{
-					Name:   "k, kms",
-					Usage:  "the kms id to use when uploading the changed content",
-					EnvVar: "AWS_KMS_ID",
 				},
 			},
 			Action: func(cx *cli.Context) {
