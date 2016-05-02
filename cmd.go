@@ -58,8 +58,9 @@ func newCliApplication() *cli.App {
 			},
 		},
 		{
-			Name:  "buckets",
-			Usage: "provides a list of the buckets available to you",
+			Name:      "buckets",
+			ShortName: "s3",
+			Usage:     "provides a list of the buckets available to you",
 			Subcommands: []cli.Command{
 				{
 					Name:  "ls, list",
@@ -150,8 +151,8 @@ func newCliApplication() *cli.App {
 					Usage: "do not maintain the directory structure, flattern all files into a single directory",
 				},
 				cli.StringFlag{
-					Name:  "d, output-dir",
-					Usage: "the path to the directory in which to save the files",
+					Name:   "d, output-dir",
+					Usage:  "the path to the directory in which to save the files",
 					EnvVar: "KMSCTL_OUTPUT_DIR",
 					Value:  "./secrets",
 				},
@@ -211,9 +212,16 @@ func newCliApplication() *cli.App {
 					Usage:  "the name of the s3 bucket containing the encrypted files",
 					EnvVar: "AWS_SECRETS_BUCKET",
 				},
-				cli.BoolFlag{
-					Name:  "l, local-file",
-					Usage: "indicate the file is locally stored rather than a s3 bucket",
+				cli.StringFlag{
+					Name:   "e, editor",
+					Usage:  "the editor to open the file with for editing",
+					Value:  "vim",
+					EnvVar: "EDITOR",
+				},
+				cli.StringFlag{
+					Name:   "k, kms",
+					Usage:  "the kms id to use when uploading the changed content",
+					EnvVar: "AWS_KMS_ID",
 				},
 			},
 			Action: func(cx *cli.Context) {
@@ -228,21 +236,20 @@ func newCliApplication() *cli.App {
 // handleCommand is a generic wrapper for handling commands, or more precisely their errors
 func (r cliCommand) handleCommand(cx *cli.Context, options []string, method func(*formater, *cli.Context) error) {
 	// step: handle any panics in the command
-	/*defer func() {
+	defer func() {
 		if r := recover(); r != nil {
 			fmt.Fprintf(os.Stderr, "[error] internal error occurred, message: %s", r)
 			os.Exit(1)
 		}
 	}()
-	*/
 
-	// step: check the required options were passed
+	// step: check the required options were specified
 	for _, k := range options {
 		items := strings.Split(k, ":")
 		if len(items) != 2 {
 			panic("invalid required option definition, TYPE:NAME")
 		}
-		switch otype := items[0]; otype {
+		switch scope := items[0]; scope {
 		case "g":
 			if !cx.GlobalIsSet(items[1]) {
 				printError("the global option: '%s' is required for this command", items[1])

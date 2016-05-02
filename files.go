@@ -32,7 +32,9 @@ import (
 	"github.com/codegangsta/cli"
 )
 
+//
 // listFiles lists the files in the bucket
+//
 func (r cliCommand) listFiles(o *formater, cx *cli.Context) error {
 	// step: get the bucket name
 	bucket := cx.String("bucket")
@@ -75,7 +77,9 @@ func (r cliCommand) listFiles(o *formater, cx *cli.Context) error {
 	return nil
 }
 
+//
 // catFiles display one of more files to the screen
+//
 func (r cliCommand) catFiles(o *formater, cx *cli.Context) error {
 	bucket := cx.String("bucket")
 
@@ -84,14 +88,15 @@ func (r cliCommand) catFiles(o *formater, cx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-
 		fmt.Fprintf(os.Stdout, "%s", content)
 	}
 
 	return nil
 }
 
+//
 // getFiles retrieve files from bucket
+//
 func (r cliCommand) getFiles(o *formater, cx *cli.Context) error {
 	// step: get the inputs
 	bucket := cx.String("bucket")
@@ -145,7 +150,7 @@ func (r cliCommand) getFiles(o *formater, cx *cli.Context) error {
 			}
 			// step: ensure the directory structure
 			fullPath := fmt.Sprintf("%s/%s", outdir, filename)
-			if err := os.MkdirAll(outdir + "/" + path.Dir(filename), 0755); err != nil {
+			if err := os.MkdirAll(outdir+"/"+path.Dir(filename), 0755); err != nil {
 				return err
 			}
 			// step: create the file for writing
@@ -170,7 +175,9 @@ func (r cliCommand) getFiles(o *formater, cx *cli.Context) error {
 	return nil
 }
 
+//
 // putFiles uploads a selection of files into the bucket
+//
 func (r cliCommand) putFiles(o *formater, cx *cli.Context) error {
 	// step: grab the options
 	bucket := cx.String("bucket")
@@ -222,61 +229,83 @@ func (r cliCommand) putFiles(o *formater, cx *cli.Context) error {
 	return nil
 }
 
+//
 // editFile permits an inline edit of the file
+//
 func (r cliCommand) editFile(o *formater, cx *cli.Context) error {
 	bucket := cx.String("bucket")
+	editor := cx.String("editor")
 
-	// step: get the editor
-	editor := "vim"
-	if os.Getenv("EDITOR") != "" {
-		editor = os.Getenv("EDITOR")
-	}
-
-	for _, x := range cx.Args() {
-		// step: attempt to retrieve the data
-		content, err := r.getFileBlob(bucket, x)
+	for _, key := range cx.Args() {
+		// step: retrieve the head metadata
+		metadata, err := r.getFileMetadata(key, bucket)
 		if err != nil {
-			return fmt.Errorf("unable to retrieve the file: %s, error: %s", x, err)
+			return err
 		}
+
+		// step: attempt to retrieve the data
+		content, err := r.getFileBlob(bucket, key)
+		if err != nil {
+			return fmt.Errorf("unable to retrieve keythe file: %s, error: %s", key, err)
+		}
+
 		// step: write the file to the
-		if err := inlineEditFile(x, content, editor); err != nil {
-			return fmt.Errorf("unable to edit the file: %s, error: %s", x, err)
+		path, err := inlineEdit(content, editor)
+		if err != nil {
+			return fmt.Errorf("unable to edit the file: %s, error: %s", key, err)
 		}
+
+		// step: upload the content to bucket
+		if err := r.putFile(bucket, key, path, *metadata.SSEKMSKeyId); err != nil {
+			os.Remove(path)
+			return err
+		}
+
+		// step: add the log
+		o.fields(map[string]interface{}{
+			"action": "put",
+			"key":    key,
+			"bucket": bucket,
+		}).log("successfully edited and uploaded file: s3://%s/%s\n", bucket, key)
+
+		os.Remove(path)
 	}
 
 	return nil
 }
 
-// inlineEditFile performs an inline edit of the file
-func inlineEditFile(filename string, content []byte, editor string) error {
+//
+// inlineEdit performs an inline edit of the file
+//
+func inlineEdit(content []byte, editor string) (string, error) {
 	// step: create a temporary file and write the data
-	tmpfile, err := ioutil.TempFile("/tmp", filename+".XXXXXXXX")
+	tmp, err := ioutil.TempFile("/tmp", "edit.XXXXXXXX")
 	if err != nil {
-		return err
+		return "", err
 	}
-	defer func() {
-		// delete the file
-		os.Remove(tmpfile.Name())
-	}()
-	if _, err := tmpfile.Write(content); err != nil {
-		return err
+	// step: write out the content of the file
+	if _, err := tmp.Write(content); err != nil {
+		return "", err
 	}
-	tmpfile.Close()
-
+	tmp.Close()
 
 	// step: open the secret with the editor
-	cmd := exec.Command(editor, tmpfile.Name())
+	cmd := exec.Command(editor, tmp.Name())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	// step: execute the editor
 	if err := cmd.Run(); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return tmp.Name(), nil
 }
 
-
+//
 // getFileBlob retrieves the content from a file in the bucket
+//
 func (r cliCommand) getFileBlob(bucket, key string) ([]byte, error) {
 	// step: build the input options
 	input := &s3.GetObjectInput{
@@ -297,7 +326,19 @@ func (r cliCommand) getFileBlob(bucket, key string) ([]byte, error) {
 	return content, nil
 }
 
+//
+// getFileMetadata returns the head data for the specific key
+//
+func (r cliCommand) getFileMetadata(key, bucket string) (*s3.HeadObjectOutput, error) {
+	return r.s3Client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+}
+
+//
 // hasKey checks if the key exist in the bucket
+//
 func (r cliCommand) hasKey(key, bucket string) (bool, error) {
 	keys, err := r.listBucketKeys(bucket, filepath.Dir(key))
 	if err != nil {
@@ -313,28 +354,16 @@ func (r cliCommand) hasKey(key, bucket string) (bool, error) {
 	return false, nil
 }
 
-// hasBucket checks if the bucket exists
-func (r cliCommand) hasBucket(bucket string) (bool, error) {
-	list, err := r.listS3Buckets()
-	if err != nil {
-		return false, err
-	}
-	for _, x := range list {
-		if bucket == *x.Name {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
+//
 // putFile uploads a file to the bucket
+//
 func (r cliCommand) putFile(bucket, key, path, kmsID string) error {
 	// step: open the file
 	file, err := os.Open(path)
 	if err != nil {
 		return err
 	}
+
 	// step: upload the file
 	_, err = r.uploader.Upload(&s3manager.UploadInput{
 		Bucket:               aws.String(bucket),
@@ -347,7 +376,9 @@ func (r cliCommand) putFile(bucket, key, path, kmsID string) error {
 	return err
 }
 
+//
 // listBucketKeys get all the keys from the bucket
+//
 func (r cliCommand) listBucketKeys(bucket, prefix string) ([]*s3.Object, error) {
 	var list []*s3.Object
 
@@ -370,7 +401,9 @@ func (r cliCommand) listBucketKeys(bucket, prefix string) ([]*s3.Object, error) 
 	return list, nil
 }
 
+//
 // sizeOfBucket gets the number of objects in the bucket
+//
 func (r cliCommand) sizeOfBucket(name string) (int, error) {
 	files, err := r.listBucketKeys(name, "")
 	if err != nil {
