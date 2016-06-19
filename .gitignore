@@ -1,6 +1,6 @@
 # Intellij
 .idea/
-.iml
+*.iml
 bin/
 release/
 secrets/

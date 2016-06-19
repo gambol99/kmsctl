@@ -117,7 +117,7 @@ func newCliApplication() *cli.App {
 				cli.StringFlag{
 					Name:   "b, bucket",
 					Usage:  "the name of the s3 bucket containing the encrypted files",
-					EnvVar: "AWS_SECRETS_BUCKET",
+					EnvVar: "AWS_S3_BUCKET",
 				},
 				cli.BoolTFlag{
 					Name:  "r, recursive",
@@ -135,7 +135,7 @@ func newCliApplication() *cli.App {
 				cli.StringFlag{
 					Name:   "b, bucket",
 					Usage:  "the name of the s3 bucket containing the encrypted files",
-					EnvVar: "AWS_SECRETS_BUCKET",
+					EnvVar: "AWS_S3_BUCKET",
 				},
 				cli.StringFlag{
 					Name:  "p, perms",
@@ -173,7 +173,7 @@ func newCliApplication() *cli.App {
 				cli.StringFlag{
 					Name:   "b, bucket",
 					Usage:  "the name of the s3 bucket containing the encrypted files",
-					EnvVar: "AWS_SECRETS_BUCKET",
+					EnvVar: "AWS_S3_BUCKET",
 				},
 			},
 			Action: func(cx *cli.Context) {
@@ -187,7 +187,7 @@ func newCliApplication() *cli.App {
 				cli.StringFlag{
 					Name:   "b, bucket",
 					Usage:  "the name of the s3 bucket containing the encrypted files",
-					EnvVar: "AWS_SECRETS_BUCKET",
+					EnvVar: "AWS_S3_BUCKET",
 				},
 				cli.StringFlag{
 					Name:   "k, kms",
@@ -210,7 +210,7 @@ func newCliApplication() *cli.App {
 				cli.StringFlag{
 					Name:   "b, bucket",
 					Usage:  "the name of the s3 bucket containing the encrypted files",
-					EnvVar: "AWS_SECRETS_BUCKET",
+					EnvVar: "AWS_S3_BUCKET",
 				},
 				cli.StringFlag{
 					Name:   "e, editor",
