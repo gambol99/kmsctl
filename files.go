@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -150,7 +149,7 @@ func (r cliCommand) getFiles(o *formater, cx *cli.Context) error {
 			}
 			// step: ensure the directory structure
 			fullPath := fmt.Sprintf("%s/%s", outdir, filename)
-			if err := os.MkdirAll(outdir+"/"+path.Dir(filename), 0755); err != nil {
+			if err := os.MkdirAll(outdir+"/"+filepath.Dir(filename), 0755); err != nil {
 				return err
 			}
 			// step: create the file for writing
@@ -183,6 +182,11 @@ func (r cliCommand) putFiles(o *formater, cx *cli.Context) error {
 	bucket := cx.String("bucket")
 	kms := cx.String("kms")
 	flatten := cx.Bool("flatten")
+	path := cx.String("path")
+
+	if flatten && path != "" {
+		return fmt.Errorf("invalid option, you cannot flatten *and* specify a path")
+	}
 
 	// step: ensure the bucket exists
 	if found, err := r.hasBucket(bucket); err != nil {
@@ -208,7 +212,10 @@ func (r cliCommand) putFiles(o *formater, cx *cli.Context) error {
 			// step: construct the key for this file
 			keyName := filename
 			if flatten {
-				keyName = path.Base(keyName)
+				keyName = filepath.Base(keyName)
+			}
+			if path != "" {
+				keyName = fmt.Sprintf("%s/%s", path, filepath.Base(keyName))
 			}
 
 			// step: upload the file to the bucket
