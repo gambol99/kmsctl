@@ -18,7 +18,18 @@ package main
 import (
 	"os"
 	"path/filepath"
+
+	"github.com/urfave/cli"
 )
+
+// getPaths returns a list of paths from the arguments, else default to base
+func getPaths(cx *cli.Context) []string {
+	if len(cx.Args()) <= 0 {
+		return []string{""}
+	}
+
+	return cx.Args()
+}
 
 // checks if the path is a directory
 func isDirectory(path string) (bool, error) {

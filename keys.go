@@ -17,13 +17,28 @@ package main
 
 import (
 	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
 
+//
+// newListKMSCommand creates a new list kms key command
+//
+func newListKMSCommand(cmd *cliCommand) cli.Command {
+	return cli.Command{
+		Name:  "kms",
+		Usage: "provide a listing of the kms key presently available to us",
+		Action: func(cx *cli.Context) error {
+			return handleCommand(cx, []string{}, cmd, listKeys)
+		},
+	}
+}
+
+//
 // listKeys provides a listing of kms keys available
-func (r cliCommand) listKeys(o *formater, cx *cli.Context) error {
+//
+func listKeys(o *formatter, cx *cli.Context, cmd *cliCommand) error {
 	// step: retrieve the keys from kms
-	keys, err := r.kmsKeys()
+	keys, err := cmd.kmsKeys()
 	if err != nil {
 		return err
 	}
@@ -43,8 +58,10 @@ func (r cliCommand) listKeys(o *formater, cx *cli.Context) error {
 	return nil
 }
 
+//
 // kmsKeys retrieves the kms keys from aws
-func (r cliCommand) kmsKeys() ([]*kms.AliasListEntry, error) {
+//
+func (r *cliCommand) kmsKeys() ([]*kms.AliasListEntry, error) {
 	resp, err := r.kmsClient.ListAliases(&kms.ListAliasesInput{})
 	if err != nil {
 		return []*kms.AliasListEntry{}, err

@@ -21,12 +21,66 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
 
-func (r cliCommand) listBuckets(o *formater, cx *cli.Context) error {
+//
+// newBucketsCommand creates a new buckets command
+//
+func newBucketsCommand(cmd *cliCommand) cli.Command {
+	return cli.Command{
+		Name:      "buckets",
+		ShortName: "s3",
+		Usage:     "provides a list of the buckets available to you",
+		Subcommands: []cli.Command{
+			{
+				Name:  "ls, list",
+				Usage: "retrieve a listing of all the buckets within the specified region",
+				Action: func(cx *cli.Context) error {
+					return handleCommand(cx, []string{}, cmd, listBuckets)
+				},
+			},
+			{
+				Name:  "create",
+				Usage: "create a bucket in the specified region",
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "n, name",
+						Usage: "the name of the bucket you wish to create",
+					},
+				},
+				Action: func(cx *cli.Context) error {
+					return handleCommand(cx, []string{"l:name"}, cmd, createBucket)
+				},
+			},
+			{
+				Name:    "delete",
+				Aliases: []string{"rm"},
+				Usage:   "delete a bucket in the specified region",
+				Flags: []cli.Flag{
+					cli.StringFlag{
+						Name:  "n, name",
+						Usage: "the name of the bucket you wish to delete",
+					},
+					cli.BoolFlag{
+						Name:  "force",
+						Usage: "delete the bucket regardless if empty or not",
+					},
+				},
+				Action: func(cx *cli.Context) error {
+					return handleCommand(cx, []string{"l:name"}, cmd, deleteBucket)
+				},
+			},
+		},
+		Action: func(cx *cli.Context) error {
+			return handleCommand(cx, []string{}, cmd, listBuckets)
+		},
+	}
+}
+
+func listBuckets(o *formatter, cx *cli.Context, cmd *cliCommand) error {
 	// step: get a list of buckets
-	buckets, err := r.listS3Buckets()
+	buckets, err := cmd.listS3Buckets()
 	if err != nil {
 		return err
 	}
@@ -42,16 +96,16 @@ func (r cliCommand) listBuckets(o *formater, cx *cli.Context) error {
 	return nil
 }
 
-func (r cliCommand) createBucket(o *formater, cx *cli.Context) error {
+func createBucket(o *formatter, cx *cli.Context, cmd *cliCommand) error {
 	name := cx.String("name")
 
-	if found, err := r.hasBucket(name); err != nil {
+	if found, err := cmd.hasBucket(name); err != nil {
 		return err
 	} else if found {
 		return fmt.Errorf("the bucket already exists")
 	}
 
-	if _, err := r.s3Client.CreateBucket(&s3.CreateBucketInput{
+	if _, err := cmd.s3Client.CreateBucket(&s3.CreateBucketInput{
 		Bucket: aws.String(name),
 	}); err != nil {
 		return err
@@ -66,12 +120,12 @@ func (r cliCommand) createBucket(o *formater, cx *cli.Context) error {
 	return nil
 }
 
-func (r cliCommand) deleteBucket(o *formater, cx *cli.Context) error {
+func deleteBucket(o *formatter, cx *cli.Context, cmd *cliCommand) error {
 	name := cx.String("name")
 	force := cx.Bool("force")
 
 	// step: check the bucket exists
-	found, err := r.hasBucket(name)
+	found, err := cmd.hasBucket(name)
 	if err != nil {
 		return err
 	} else if !found {
@@ -79,7 +133,7 @@ func (r cliCommand) deleteBucket(o *formater, cx *cli.Context) error {
 	}
 
 	// step: check if the bucket is empty
-	count, err := r.sizeOfBucket(name)
+	count, err := cmd.sizeOfBucket(name)
 	if err != nil {
 		return err
 	} else if count > 0 && !force {
@@ -89,12 +143,12 @@ func (r cliCommand) deleteBucket(o *formater, cx *cli.Context) error {
 	// step: delete all the keys in the bucket first
 	// @TODO find of there is a force deletion api call
 	if count > 0 {
-		files, err := r.listBucketKeys(name, "")
+		files, err := cmd.listBucketKeys(name, "")
 		if err != nil {
 			return err
 		}
 		for _, x := range files {
-			if _, err := r.s3Client.DeleteObject(&s3.DeleteObjectInput{
+			if _, err := cmd.s3Client.DeleteObject(&s3.DeleteObjectInput{
 				Bucket: aws.String(name),
 				Key:    x.Key,
 			}); err != nil {
@@ -103,7 +157,7 @@ func (r cliCommand) deleteBucket(o *formater, cx *cli.Context) error {
 		}
 	}
 	// step: delete the bucket
-	if _, err := r.s3Client.DeleteBucket(&s3.DeleteBucketInput{
+	if _, err := cmd.s3Client.DeleteBucket(&s3.DeleteBucketInput{
 		Bucket: aws.String(name),
 	}); err != nil {
 		return err
@@ -116,29 +170,4 @@ func (r cliCommand) deleteBucket(o *formater, cx *cli.Context) error {
 	}).log("successfully deleted the bucket: %s\n", name)
 
 	return nil
-}
-
-// hasBucket checks if the bucket exists
-func (r cliCommand) hasBucket(bucket string) (bool, error) {
-	list, err := r.listS3Buckets()
-	if err != nil {
-		return false, err
-	}
-	for _, x := range list {
-		if bucket == *x.Name {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
-// listS3Buckets gets a list of buckets
-func (r cliCommand) listS3Buckets() ([]*s3.Bucket, error) {
-	list, err := r.s3Client.ListBuckets(&s3.ListBucketsInput{})
-	if err != nil {
-		return nil, err
-	}
-
-	return list.Buckets, nil
 }
