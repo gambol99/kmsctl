@@ -194,6 +194,10 @@ func newCliApplication() *cli.App {
 					Usage:  "the aws kms id to use when performing operations",
 					EnvVar: "AWS_KMS_ID",
 				},
+				cli.StringFlag{
+					Name:   "p, path",
+					Usage:  "use this are the path inside the bucket, rather than the path to the file",
+				},
 				cli.BoolFlag{
 					Name:  "flatten",
 					Usage: "do not maintain the directory structure, flatten all files into a single directory",
