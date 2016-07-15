@@ -23,14 +23,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type formater struct {
+type formatter struct {
 	// the format we should be using
 	format string
 	// the writer
 	writer io.Writer
 }
 
-func newFormater(format string, writer io.Writer) (*formater, error) {
+func newFormater(format string, writer io.Writer) (*formatter, error) {
 	switch format {
 	case "yml":
 		fallthrough
@@ -41,13 +41,13 @@ func newFormater(format string, writer io.Writer) (*formater, error) {
 		return nil, fmt.Errorf("unsupport output format")
 	}
 
-	return &formater{
+	return &formatter{
 		format: format,
 		writer: writer,
 	}, nil
 }
 
-func (r *formater) fields(v map[string]interface{}) *formater {
+func (r *formatter) fields(v map[string]interface{}) *formatter {
 	switch r.format {
 	case "yml":
 		fallthrough
@@ -70,7 +70,7 @@ func (r *formater) fields(v map[string]interface{}) *formater {
 }
 
 // add a message to the last log entry
-func (r *formater) log(message string, args ...interface{}) *formater {
+func (r *formatter) log(message string, args ...interface{}) *formatter {
 	if r.format == "text" {
 		fmt.Fprintf(r.writer, message, args...)
 	}
