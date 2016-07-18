@@ -37,7 +37,7 @@ func newCatCommand(cmd *cliCommand) cli.Command {
 			},
 		},
 		Action: func(cx *cli.Context) error {
-			return handleCommand(cx, []string{"l:bucket"}, cmd, catFiles)
+			return handleCommand(cx, []string{"l:bucket:s"}, cmd, catFiles)
 		},
 	}
 }

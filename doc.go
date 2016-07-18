@@ -17,7 +17,7 @@ package main
 
 const (
 	progName = "kmsctl"
-	version  = "v0.1.2"
+	version  = "v0.2.0"
 	author   = "Rohith"
 	email    = "gambol99@gmail.com"
 )

@@ -45,12 +45,12 @@ func newBucketsCommand(cmd *cliCommand) cli.Command {
 				Usage: "create a bucket in the specified region",
 				Flags: []cli.Flag{
 					cli.StringFlag{
-						Name:  "n, name",
+						Name:  "b, bucket",
 						Usage: "the name of the bucket you wish to create",
 					},
 				},
 				Action: func(cx *cli.Context) error {
-					return handleCommand(cx, []string{"l:name"}, cmd, createBucket)
+					return handleCommand(cx, []string{"l:bucket:s"}, cmd, createBucket)
 				},
 			},
 			{
@@ -59,7 +59,7 @@ func newBucketsCommand(cmd *cliCommand) cli.Command {
 				Usage:   "delete a bucket in the specified region",
 				Flags: []cli.Flag{
 					cli.StringFlag{
-						Name:  "n, name",
+						Name:  "b, bucket",
 						Usage: "the name of the bucket you wish to delete",
 					},
 					cli.BoolFlag{
@@ -68,7 +68,7 @@ func newBucketsCommand(cmd *cliCommand) cli.Command {
 					},
 				},
 				Action: func(cx *cli.Context) error {
-					return handleCommand(cx, []string{"l:name"}, cmd, deleteBucket)
+					return handleCommand(cx, []string{"l:bucket:s"}, cmd, deleteBucket)
 				},
 			},
 		},
@@ -97,7 +97,7 @@ func listBuckets(o *formatter, cx *cli.Context, cmd *cliCommand) error {
 }
 
 func createBucket(o *formatter, cx *cli.Context, cmd *cliCommand) error {
-	name := cx.String("name")
+	name := cx.String("bucket")
 
 	if found, err := cmd.hasBucket(name); err != nil {
 		return err
@@ -121,7 +121,7 @@ func createBucket(o *formatter, cx *cli.Context, cmd *cliCommand) error {
 }
 
 func deleteBucket(o *formatter, cx *cli.Context, cmd *cliCommand) error {
-	name := cx.String("name")
+	name := cx.String("bucket")
 	force := cx.Bool("force")
 
 	// step: check the bucket exists
