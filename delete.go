@@ -37,7 +37,7 @@ func newDeleteCommand(cmd *cliCommand) cli.Command {
 			},
 		},
 		Action: func(cx *cli.Context) error {
-			return handleCommand(cx, []string{"l:bucket"}, cmd, deleteFile)
+			return handleCommand(cx, []string{"l:bucket:s"}, cmd, deleteFile)
 		},
 	}
 }

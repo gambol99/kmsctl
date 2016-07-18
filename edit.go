@@ -42,7 +42,7 @@ func newEditCommand(cmd *cliCommand) cli.Command {
 			},
 		},
 		Action: func(cx *cli.Context) error {
-			return handleCommand(cx, []string{"l:bucket"}, cmd, editFile)
+			return handleCommand(cx, []string{"l:bucket:s"}, cmd, editFile)
 		},
 	}
 }

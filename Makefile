@@ -3,8 +3,8 @@ NAME=kmsctl
 AUTHOR=gambol99
 HARDWARE=$(shell uname -m)
 REGISTRY=docker.io
-GOVERSION=1.6.0
-SUDO=sudo
+GOVERSION=1.6.2
+SUDO=
 GIT_COMMIT=$(shell git log --pretty=format:'%h' -n 1)
 ROOT_DIR=${PWD}
 VERSION=$(shell awk '/version.*=/ { print $$3 }' doc.go | sed 's/"//g')
@@ -100,7 +100,6 @@ test: deps
 	@echo "--> Running the tests"
 	@godep go test -v
 	@$(MAKE) gofmt
-	@$(MAKE) vet
 	@$(MAKE) cover
 
 changelog: release

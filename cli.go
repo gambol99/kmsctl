@@ -123,23 +123,44 @@ func handleCommand(cx *cli.Context, options []string, cmd *cliCommand, method fu
 	// step: check the required options were specified
 	for _, k := range options {
 		items := strings.Split(k, ":")
-		if len(items) != 2 {
-			panic("invalid required option definition, TYPE:NAME")
+		if len(items) != 3 {
+			panic("invalid required option definition, SCOPE:NAME:TYPE")
 		}
+		name := items[1]
+
+		//
+		// @Fix the cli lib IsSet does not check if the option was set by a environment variable, the
+		// issue https://github.com/urfave/cli/issues/294 highlights problem. As a consequence, we can't determine
+		// if the variable is actually set. The hack below attempts to remedy it.
+		//
+		var invalid bool
+
 		switch scope := items[0]; scope {
 		case "g":
-			if !cx.GlobalIsSet(items[1]) {
-				printError("the global option: '%s' is required for this command", items[1])
+			switch t := items[2]; t {
+			case "s":
+				invalid = !cx.GlobalIsSet(name) && cx.String(name) == ""
+			case "a":
+				invalid = !cx.GlobalIsSet(name) && len(cx.GlobalStringSlice(name)) == 0
+			}
+			if invalid {
+				printError("the global option: '%s' is required", name)
 			}
 		default:
-			if !cx.IsSet(items[1]) {
-				printError("the command option '%s' is required", items[1])
+			switch t := items[2]; t {
+			case "s":
+				invalid = !cx.IsSet(name) && cx.String(name) == ""
+			case "a":
+				invalid = !cx.IsSet(name) && len(cx.StringSlice(name)) == 0
+			}
+			if invalid {
+				printError("the command option: '%s' is required", name)
 			}
 		}
 	}
 
 	// step: create a cli output
-	writer, err := newFormater(cx.GlobalString("format"), os.Stdout)
+	writer, err := newFormatter(cx.GlobalString("format"), os.Stdout)
 	if err != nil {
 		printError("error: %s", err)
 	}

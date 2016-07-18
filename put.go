@@ -48,7 +48,7 @@ func newPutCommand(cmd *cliCommand) cli.Command {
 			},
 		},
 		Action: func(cx *cli.Context) error {
-			return handleCommand(cx, []string{"l:bucket", "l:kms"}, cmd, putFiles)
+			return handleCommand(cx, []string{"l:bucket:s", "l:kms:s"}, cmd, putFiles)
 		},
 	}
 }

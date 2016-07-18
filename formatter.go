@@ -21,6 +21,7 @@ import (
 	"io"
 
 	"gopkg.in/yaml.v2"
+	"time"
 )
 
 type formatter struct {
@@ -30,7 +31,7 @@ type formatter struct {
 	writer io.Writer
 }
 
-func newFormater(format string, writer io.Writer) (*formatter, error) {
+func newFormatter(format string, writer io.Writer) (*formatter, error) {
 	switch format {
 	case "yml":
 		fallthrough
@@ -48,6 +49,7 @@ func newFormater(format string, writer io.Writer) (*formatter, error) {
 }
 
 func (r *formatter) fields(v map[string]interface{}) *formatter {
+	v["stamp"] = time.Now().Format(time.RFC3339)
 	switch r.format {
 	case "yml":
 		fallthrough
@@ -56,13 +58,13 @@ func (r *formatter) fields(v map[string]interface{}) *formatter {
 		if err != nil {
 			return r
 		}
-		fmt.Fprintf(r.writer, string(encode))
+		fmt.Fprintf(r.writer, string(encode)+"\n")
 	case "json":
 		encode, err := json.Marshal(v)
 		if err != nil {
 			return r
 		}
-		fmt.Fprintf(r.writer, string(encode))
+		fmt.Fprintf(r.writer, string(encode)+"\n")
 	default:
 	}
 

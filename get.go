@@ -17,10 +17,14 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/urfave/cli"
 )
@@ -47,9 +51,18 @@ func newGetCommand(cmd *cliCommand) cli.Command {
 				Name:  "r, recursive",
 				Usage: "enable recursive option and transverse all subdirectories",
 			},
-			cli.BoolFlag{
+			cli.BoolTFlag{
 				Name:  "flatten",
-				Usage: "do not maintain the directory structure, flattern all files into a single directory",
+				Usage: "do not maintain the directory structure, flattern all files into a single directory (default true)",
+			},
+			cli.BoolFlag{
+				Name:  "sync",
+				Usage: "continously synchronize the file/s between the bucket and destination folder",
+			},
+			cli.DurationFlag{
+				Name:  "sync-interval",
+				Usage: "the time interval between successive pollings, i.e how long we should wait to recheck",
+				Value: time.Duration(30 * time.Second),
 			},
 			cli.StringFlag{
 				Name:   "d, output-dir",
@@ -64,7 +77,7 @@ func newGetCommand(cmd *cliCommand) cli.Command {
 			},
 		},
 		Action: func(cx *cli.Context) error {
-			return handleCommand(cx, []string{"l:bucket", "l:output-dir"}, cmd, getFiles)
+			return handleCommand(cx, []string{"l:bucket:s", "l:output-dir:s"}, cmd, getFiles)
 		},
 	}
 }
@@ -72,80 +85,130 @@ func newGetCommand(cmd *cliCommand) cli.Command {
 //
 // getFiles retrieve files from bucket
 //
-func getFiles(o *formatter, cx *cli.Context, cmd *cliCommand) error {
+func getFiles(o *formatter, cx *cli.Context, cmd *cliCommand) (err error) {
 	// step: get the inputs
 	bucket := cx.String("bucket")
-	outdir := cx.String("output-dir")
+	directory := cx.String("output-dir")
 	flatten := cx.Bool("flatten")
 	recursive := cx.Bool("recursive")
+	syncEnabled := cx.Bool("sync")
+	syncInterval := cx.Duration("sync-interval")
 
 	// step: validate the filter if any
-	filter, err := regexp.Compile(cx.String("filter"))
-	if err != nil {
-		return fmt.Errorf("the filter: %s is invalid, message: %s", cx.String("filter"), err)
+	var filter *regexp.Regexp
+	if filter, err = regexp.Compile(cx.String("filter")); err != nil {
+		return fmt.Errorf("filter: %s is invalid, message: %s", cx.String("filter"), err)
 	}
 
 	// step: create the output directory if required
-	if err := os.MkdirAll(outdir, 0755); err != nil {
+	if err := os.MkdirAll(directory, 0755); err != nil {
 		return err
 	}
 
-	// step: iterate the paths build a list of files were interested in
-	for _, p := range getPaths(cx) {
-		// step: drop the slash to for empty
-		if strings.HasPrefix(p, "/") {
-			p = strings.TrimPrefix(p, "/")
-		}
+	// step: create a signal to handle exits
+	signalCh := make(chan os.Signal)
+	signal.Notify(signalCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-		// step: list all the keys in the bucket
-		keys, err := cmd.listBucketKeys(bucket, p)
-		if err != nil {
-			return err
-		}
-		// step: iterate the files
-		for _, k := range keys {
-			filename := *k.Key
+	// step: create an error channel for the exiting
+	errCh := make(chan error)
 
-			// step: are we recursive? i.e. extract post prefix and ignore any keys which have a / in them
-			if strings.Contains(filename, "/") && !recursive {
-				continue
-			}
-			// step: apply the filter
-			if !filter.MatchString(*k.Key) {
-				continue
-			}
-			// step: retrieve the file content
-			content, err := cmd.getFile(bucket, *k.Key)
-			if err != nil {
-				return err
-			}
-			// step: are we flattening the files
-			if strings.Contains(filename, "/") && flatten {
-				filename = fmt.Sprintf("%s/%s", outdir, filepath.Base(filename))
-			}
-			// step: ensure the directory structure
-			fullPath := fmt.Sprintf("%s/%s", outdir, filename)
-			if err := os.MkdirAll(outdir+"/"+filepath.Dir(filename), 0755); err != nil {
-				return err
-			}
-			// step: create the file for writing
-			file, err := os.OpenFile(fullPath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0744)
-			if err != nil {
-				return err
-			}
-			if _, err := file.Write(content); err != nil {
-				return err
+	go func() {
+		// step: iterate the paths build a list of files were interested in
+		for {
+			for _, p := range getPaths(cx) {
+				// step: drop the slash to for empty
+				p = strings.TrimPrefix(p, "/")
+
+				// step: list all the keys in the bucket
+				files, err := cmd.listBucketKeys(bucket, p)
+				if err != nil {
+					errCh <- err
+					return
+				}
+
+				// step: iterate the files
+				for _, k := range files {
+					keyName := *k.Key
+					path := keyName
+					filename := filepath.Base(path)
+
+					// step: apply the filter and ignore everything were not interested in
+					if !filter.MatchString(*k.Key) {
+						continue
+					}
+					// step: are we recursive? i.e. if not, check the file ends with the filename
+					if !recursive && !strings.HasSuffix(path, filename) {
+						continue
+					}
+
+					// step: are we flattening the files
+					if flatten {
+						path = fmt.Sprintf("%s/%s", directory, filepath.Base(path))
+					}
+
+					path = fmt.Sprintf("%s/%s", directory, path)
+
+					// step: process the file
+					if err := processFile(path, keyName, bucket, cmd); err != nil {
+						o.fields(map[string]interface{}{
+							"action":      "get",
+							"bucket":      bucket,
+							"destination": path,
+							"error":       err.Error(),
+						}).log("failed to retrieve key: %s, error: %s\n", keyName, err)
+
+						if !syncEnabled {
+							errCh <- err
+							return
+						}
+					}
+					// step: add the log
+					o.fields(map[string]interface{}{
+						"action":      "get",
+						"bucket":      bucket,
+						"destination": path,
+					}).log("retrieved the file: %s and wrote to: %s\n", keyName, path)
+				}
 			}
 
-			// step: add the log
-			o.fields(map[string]interface{}{
-				"action":      "get",
-				"source":      *k.Key,
-				"destination": fullPath,
-				"content":     string(content),
-			}).log("retrieved the file: %s and wrote to: %s\n", *k.Key, fullPath)
+			// step: if not sync we can break
+			if !syncEnabled {
+				break
+			}
+
+			// step: otherwise we can inject delay between loops
+			time.Sleep(syncInterval)
 		}
+		errCh <- nil
+	}()
+
+	// step: wait for an exit or signal to quit
+
+	select {
+	case <-signalCh:
+	case err = <-errCh:
 	}
 
-	return nil
+	return err
+}
+
+//
+// processFile is responsible for retrieving the files
+//
+func processFile(path, key, bucket string, cmd *cliCommand) error {
+	// step: retrieve the file content
+	content, err := cmd.getFile(bucket, key)
+	if err != nil {
+		return err
+	}
+
+	// step: ensure the directory structure
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+
+	// @TODO check if the files exists and only write if required
+
+	// step: create the file for writing
+	return ioutil.WriteFile(path, content, 0644)
 }
