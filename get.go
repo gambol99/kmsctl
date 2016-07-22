@@ -142,11 +142,12 @@ func getFiles(o *formatter, cx *cli.Context, cmd *cliCommand) (err error) {
 					}
 
 					// step: are we flattening the files
-					if flatten {
+					switch flatten {
+					case true:
 						path = fmt.Sprintf("%s/%s", directory, filepath.Base(path))
+					default:
+						path = fmt.Sprintf("%s/%s", directory, path)
 					}
-
-					path = fmt.Sprintf("%s/%s", directory, path)
 
 					// step: process the file
 					if err := processFile(path, keyName, bucket, cmd); err != nil {
