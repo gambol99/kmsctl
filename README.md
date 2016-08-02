@@ -1,3 +1,8 @@
+[![Build Status](https://travis-ci.org/gambol99/kmsctl.svg?branch=master)](https://travis-ci.org/gambol99/kmsctl)
+[![GoDoc](http://godoc.org/github.com/gambol99/kmsctl?status.png)](http://godoc.org/github.com/gambol99/kmsctl)
+[![Docker Repository on Quay](https://quay.io/repository/gambol99/kmsctl/status "Docker Repository on Quay")](https://quay.io/repository/gambol99/kmsctl)
+[![GitHub version](https://badge.fury.io/gh/gambol99%2Fkmsctl.svg)](https://badge.fury.io/gh/gambol99%2Fkmsctl)
+
 ### **KMSCTL**
 
 Is a command line utility for retrieving, uploading and view files encryted via the AWS KMS service.
@@ -9,13 +14,13 @@ NAME:
 
 USAGE:
    kmsctl [global options] command [command options] [arguments...]
-   
+
 VERSION:
    v0.0.1
-   
+
 AUTHOR(S):
-   Rohith <gambol99@gmail.com> 
-   
+   Rohith <gambol99@gmail.com>
+
 COMMANDS:
     kms		provide a listing of the kms key presently available to us
     buckets	provides a list of the buckets available to you
@@ -67,7 +72,7 @@ successfully pushed the file: keys.go to s3://this-is-my-test-bucket-11991/keys.
 successfully pushed the file: main.go to s3://this-is-my-test-bucket-11991/main.go
 successfully pushed the file: utils.go to s3://this-is-my-test-bucket-11991/utils.go
 
-[jest@starfury kmsctl]$ bin/kmsctl ls -b this-is-my-test-bucket-11991 -l 
+[jest@starfury kmsctl]$ bin/kmsctl ls -b this-is-my-test-bucket-11991 -l
 some.user 2793       26 Apr 16 13:50 UTC  buckets.go
 some.user 10237      26 Apr 16 13:50 UTC  cmd.go
 some.user 687        26 Apr 16 13:50 UTC  doc.go
@@ -89,7 +94,7 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 
-[jest@starfury kmsctl]$ bin/kmsctl buckets delete -n this-is-my-test-bucket-11991 
+[jest@starfury kmsctl]$ bin/kmsctl buckets delete -n this-is-my-test-bucket-11991
 [error] operation failed, error: the bucket is not empty, either force (--force) deletion or empty the bucket
 
 [jest@starfury kmsctl]$ bin/kmsctl buckets delete -n this-is-my-test-bucket-11991 --force
