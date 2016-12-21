@@ -1,8 +1,3 @@
-[![Build Status](https://travis-ci.org/gambol99/kmsctl.svg?branch=master)](https://travis-ci.org/gambol99/kmsctl)
-[![GoDoc](http://godoc.org/github.com/gambol99/kmsctl?status.png)](http://godoc.org/github.com/gambol99/kmsctl)
-[![Docker Repository on Quay](https://quay.io/repository/gambol99/kmsctl/status "Docker Repository on Quay")](https://quay.io/repository/gambol99/kmsctl)
-[![GitHub version](https://badge.fury.io/gh/gambol99%2Fkmsctl.svg)](https://badge.fury.io/gh/gambol99%2Fkmsctl)
-
 ### **KMSCTL**
 
 Is a command line utility for retrieving, uploading and view files encryted via the AWS KMS service.
@@ -47,7 +42,7 @@ GLOBAL OPTIONS:
 
 ```shell
 [jest@starfury kmsctl]$ bin/kmsctl -p profile_name kms
-74cc9f02-7795-4fe4-888e-2aae97e3eff5     alias/aws/ebs           
+74cc9f02-7795-4fe4-888e-2aae97e3eff5     alias/aws/ebs
 62c6abc6-d1d7-4203-ac3e-5733580dd4eb     alias/dev-kms-eu-west-1
 75430871-d667-4fa5-bfb1-54c832f1d973     alias/prod-kms-eu-west-1
 ```
