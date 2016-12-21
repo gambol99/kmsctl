@@ -3,7 +3,8 @@ NAME=kmsctl
 AUTHOR=gambol99
 HARDWARE=$(shell uname -m)
 REGISTRY=quay.io
-GOVERSION=1.6.3
+GOVERSION=1.7.4
+SUDO=
 GIT_COMMIT=$(shell git log --pretty=format:'%h' -n 1)
 ROOT_DIR=${PWD}
 VERSION=$(shell awk '/version.*=/ { print $$3 }' doc.go | sed 's/"//g')
@@ -31,16 +32,16 @@ static: golang deps
 
 docker-build:
 	@echo "--> Compiling the project"
-	docker run --rm -v ${ROOT_DIR}:/go/src/github.com/gambol99/keycloak-proxy \
+	${SUDO} docker run --rm -v ${ROOT_DIR}:/go/src/github.com/gambol99/keycloak-proxy \
 		-w /go/src/github.com/gambol99/keycloak-proxy -e GOOS=linux golang:${GOVERSION} make static
 
 docker:
 	@echo "--> Building the docker image"
-	docker build -t ${REGISTRY}/${AUTHOR}/${NAME}:${VERSION} .
+	${SUDO} docker build -t ${REGISTRY}/${AUTHOR}/${NAME}:${VERSION} .
 
 docker-push:
 	@echo "--> Pushing the docker images to the registry"
-	docker push ${REGISTRY}/${AUTHOR}/${NAME}:${VERSION}
+	${SUDO} docker push ${REGISTRY}/${AUTHOR}/${NAME}:${VERSION}
 
 release: static
 	mkdir -p release

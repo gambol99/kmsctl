@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/gambol99/kmsctl",
+	"ImportPath": "gambol99/kmsctl",
 	"GoVersion": "go1.6",
 	"GodepVersion": "v74",
 	"Deps": [
@@ -137,11 +137,6 @@
 			"ImportPath": "github.com/aws/aws-sdk-go/service/s3/s3manager",
 			"Comment": "v1.1.36",
 			"Rev": "8f2725740345a0561fa09669f5f75f905404ef8b"
-		},
-		{
-			"ImportPath": "github.com/codegangsta/cli",
-			"Comment": "v1.17.0-85-g4205e9c",
-			"Rev": "4205e9c4ee9672a8df5bb4fe486a8aa07e1e4037"
 		},
 		{
 			"ImportPath": "github.com/go-ini/ini",
