@@ -9,8 +9,7 @@ services:
 - docker
 language: go
 go:
-- 1.6.3
-- 1.7beta2
+- 1.7
 install:
 - go get github.com/tools/godep
 script:
@@ -25,7 +24,7 @@ after_deploy:
 deploy:
   skip_cleanup: true
   on:
-    go: 1.6.3
+    go: 1.7.4
     repo: gambol99/kmsctl
     tags: true
   provider: releases
