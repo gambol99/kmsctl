@@ -107,15 +107,21 @@ func (r *cliCommand) putFile(bucket, key, path, kmsID string) error {
 	if err != nil {
 		return err
 	}
+	// step: check if the file has changed
+
+	// step: create the input
+	input := &s3manager.UploadInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   file,
+	}
+	if kmsID != "" {
+		input.ServerSideEncryption = aws.String("aws:kms")
+		input.SSEKMSKeyId = aws.String(kmsID)
+	}
 
 	// step: upload the file
-	_, err = r.uploader.Upload(&s3manager.UploadInput{
-		Bucket:               aws.String(bucket),
-		Key:                  aws.String(key),
-		Body:                 file,
-		ServerSideEncryption: aws.String("aws:kms"),
-		SSEKMSKeyId:          aws.String(kmsID),
-	})
+	_, err = r.uploader.Upload(input)
 
 	return err
 }
