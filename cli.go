@@ -50,43 +50,43 @@ func newCliApplication() *cli.App {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "p, profile",
-			Usage:  "the aws profile to use for static credentials",
+			Usage:  "the aws profile to use for static credentials `NAME`",
 			EnvVar: "AWS_DEFAULT_PROFILE",
 		},
 		cli.StringFlag{
 			Name:   "c, credentials",
-			Usage:  "the path to the credentials file container the aws profiles",
+			Usage:  "the path to the credentials file container the aws profiles `PATH`",
 			EnvVar: "AWS_SHARED_CREDENTIALS_FILE",
 			Value:  os.Getenv("HOME") + "/.aws/credentials",
 		},
 		cli.StringFlag{
 			Name:   "access-key",
-			Usage:  "the aws access key to use to access the resources",
+			Usage:  "the aws access key to use to access the resources `KEY`",
 			EnvVar: "AWS_ACCESS_KEY_ID",
 		},
 		cli.StringFlag{
 			Name:   "secret-key",
-			Usage:  "the aws secret key to use when accessing the resources",
+			Usage:  "the aws secret key to use when accessing the resources `KEY`",
 			EnvVar: "AWS_SECRET_ACCESS_KEY",
 		},
 		cli.StringFlag{
 			Name:   "session-token",
-			Usage:  "the aws session token to use when accessing the resources",
+			Usage:  "the aws session token to use when accessing the resources `KEY`",
 			EnvVar: "AWS_SESSION_TOKEN",
 		},
 		cli.StringFlag{
 			Name:  "environment-file",
-			Usage: "a file containing a list of environment variables",
+			Usage: "a file containing a list of environment variables `PATH`",
 		},
 		cli.StringFlag{
 			Name:   "r, region",
-			Usage:  "the aws region where the resources are located",
+			Usage:  "the aws region where the resources are located `NAME`",
 			EnvVar: "AWS_DEFAULT_REGION",
 			Value:  "eu-west-1",
 		},
 		cli.StringFlag{
 			Name:  "f, format",
-			Usage: "the format of the output to generate (accepts json, yaml or default text)",
+			Usage: "the format of the output to generate (accepts json, yaml or default text) `FORMAT`",
 			Value: "text",
 		},
 	}
@@ -95,7 +95,7 @@ func newCliApplication() *cli.App {
 	app.Before = cmd.getCredentials()
 
 	app.Commands = []cli.Command{
-		newListKMSCommand(cmd),
+		newKMSCommand(cmd),
 		newBucketsCommand(cmd),
 		newListCommand(cmd),
 		newDeleteCommand(cmd),
