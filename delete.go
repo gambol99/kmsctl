@@ -16,6 +16,7 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/urfave/cli"
@@ -32,7 +33,7 @@ func newDeleteCommand(cmd *cliCommand) cli.Command {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "b, bucket",
-				Usage:  "the name of the s3 bucket containing the encrypted files",
+				Usage:  "the name of the s3 bucket containing the encrypted files `NAME`",
 				EnvVar: "AWS_S3_BUCKET",
 			},
 		},
@@ -47,7 +48,7 @@ func newDeleteCommand(cmd *cliCommand) cli.Command {
 //
 func deleteFile(o *formatter, cx *cli.Context, cmd *cliCommand) error {
 	if len(cx.Args()) <= 0 {
-		return fmt.Errorf("you have not specified any files to delete")
+		return errors.New("you have not specified any files to delete")
 	}
 
 	bucket := cx.String("bucket")
